@@ -31,6 +31,8 @@ module.exports = {
       }
     }
 
-    return games;
+    const total = games.reduce((acc, game) => acc + game.price, 0);
+
+    return { games, total_in_cents: total * 100 };
   }
 };
