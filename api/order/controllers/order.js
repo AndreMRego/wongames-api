@@ -34,6 +34,19 @@ module.exports = {
       }
     }
 
-    return { games, total_in_cents: total * 100 };
+    try {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: total * 100,
+        currency: 'usd',
+        automatic_payment_methods: {enabled: true},
+      });
+
+      return paymentIntent;
+    } catch (err) {
+      return {
+        error: err.raw.message
+      }
+    }
+
   }
 };
