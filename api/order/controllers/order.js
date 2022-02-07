@@ -2,6 +2,7 @@
 const { sanitizeEntity } = require('strapi-utils');
 
 const stripe = require('stripe')(process.env.STRIPE_KEY);
+const orderTemplate = require('../../../config/email-templates/order');
 
 module.exports = {
   createPaymentIntent: async (ctx) => {
@@ -31,7 +32,7 @@ module.exports = {
 
     try {
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: total * 100,
+        amount: total,
         currency: 'usd',
         automatic_payment_methods: { enabled: true },
         metadata: { cart: JSON.stringify(cartGamesIds) }
@@ -69,13 +70,23 @@ module.exports = {
     const total_in_cents = await strapi.config.functions.cart.total(games);
 
     // pegar do frontend os valores do paymentMethod
+    let paymentInfo;
 
+    if(total_in_cents !== 0) {
+      try {
+        paymentInfo = await stripe.paymentMethods.retrieve(paymentMethod);
+      } catch (err) {
+        ctx.response.status = 402;
+
+        return { error: err.message }
+      }
+    }
     //salver no banco
     const entry = {
       total_in_cents,
       payment_intent_id: paymentIntentId,
-      card_brand: null,
-      card_last4: null,
+      card_brand: paymentInfo?.card?.brand,
+      card_last4: paymentInfo?.card?.last4,
       games,
       user
     };
@@ -83,6 +94,20 @@ module.exports = {
     const entity = await strapi.services.order.create(entry);
 
     // enviar um email da compra
+    await strapi.plugins.email.services.email.sendTemplatedEmail({
+      to: user.email,
+      from: 'wongames@wongames.com',
+    },
+    orderTemplate,
+    {
+      user,
+      payment: {
+        total: `$ ${total_in_cents / 100}`,
+        card_brand: entry.card_brand,
+        card_last4: entry.card_last4,
+      },
+      games
+    })
     return sanitizeEntity(entity, { model: strapi.models.order });
   }
 };
