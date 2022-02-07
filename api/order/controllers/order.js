@@ -94,11 +94,13 @@ module.exports = {
     const entity = await strapi.services.order.create(entry);
 
     // enviar um email da compra
-    await strapi.plugins.email.services.email.sendTemplatedEmail({
+    await strapi.plugins["email-designer"].services.email.sendTemplatedEmail({
       to: user.email,
       from: 'wongames@wongames.com',
     },
-    orderTemplate,
+    {
+      templateId: 1,
+    },
     {
       user,
       payment: {
