@@ -48,5 +48,27 @@ module.exports = {
       }
     }
 
+  },
+
+  create: async (ctx) => {
+    // pegar as informações do frontend
+    const { cart, paymentIntentId, paymentMethod } = ctx.request.body;
+    // pegar o token
+    const token = await strapi.plugins["users-permissions"].services.jwt.getToken(ctx);
+
+    // pega o id do usuario
+    const userId = token.id;
+
+    //pegar informacoes do usuario
+    const userInfo = await strapi
+      .query("user", "users-permissions")
+      .findOne({ id: userId });
+
+    // pegar jogos
+    // pegar total
+    // pegar paymentIntentId
+
+
+    return { cart, paymentIntentId, paymentMethod };
   }
 };
