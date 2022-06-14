@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Read the documentation (https://strapi.io/documentation/v3.x/concepts/services.html#core-services)
@@ -37,20 +37,19 @@ async function getGameInfo(slug) {
 }
 
 async function getByName(name, entityName) {
-  const item = await strapi.services[entityName].findOne({ name });
-
-  return item || null;
+  const item = await strapi.services[entityName].find({ name });
+  return item.length ? item[0] : null;
 }
 
 async function create(name, entityName) {
   const item = await getByName(name, entityName);
 
-  if(!item) {
-    return strapi.services[entityName].create({
+  if (!item) {
+    return await strapi.services[entityName].create({
       name,
-      slug: slugify(name, { lower: true })
+      slug: slugify(name, { strict: true, lower: true }),
     });
-  };
+  }
 }
 
 async function createManyToManyData(products) {
@@ -62,28 +61,25 @@ async function createManyToManyData(products) {
   products.forEach((product) => {
     const { developer, publisher, genres, supportedOperatingSystems } = product;
 
-    genres &&
-      genres.forEach((genre) => {
-          categories.add(genre);
-      });
+    genres?.forEach((item) => {
+      categories.add(item);
+    });
 
-    supportedOperatingSystems &&
-      supportedOperatingSystems.forEach((supportedOperatingSystem) => {
-        platforms.add(supportedOperatingSystem);
-      });
+    supportedOperatingSystems?.forEach((item) => {
+      platforms.add(item);
+    });
 
     developers.add(developer);
     publishers.add(publisher);
   });
 
-  const createCall = (set, entityName) =>
-    Array.from(set).map((name) => create(name, entityName));
+  const createCall = (set, entityName) => Array.from(set).map((name) => create(name, entityName));
 
   return Promise.all([
     ...createCall(developers, "developer"),
     ...createCall(publishers, "publisher"),
     ...createCall(categories, "category"),
-    ...createCall(platforms, "platform")
+    ...createCall(platforms, "platform"),
   ]);
 }
 
@@ -160,7 +156,7 @@ async function createGames(products) {
 }
 
 module.exports = {
-  populate : async (params) => {
+  populate: async (params) => {
     try {
       const gogApiUrl = `https://www.gog.com/games/ajax/filtered?mediaType=game&${qs.stringify(
         params
@@ -175,5 +171,5 @@ module.exports = {
     } catch (e) {
       console.log("populate", Exception(e));
     }
-  }
+  },
 };
